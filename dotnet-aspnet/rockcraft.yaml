@@ -1,0 +1,45 @@
+name: dotnet-aspnet
+base: bare
+build-base: devel
+version: '8.0'
+summary: ASP.NET 8 rock.
+description: |
+  .NET is a free, cross-platform, open source developer platform for building
+  many different types of applications. This image contains the ASP.NET,
+  but does not include bash, the .NET SDK nor a package manager.
+license: MIT
+platforms:
+  amd64:
+  arm64:
+
+run-user: _daemon_
+
+environment:
+  # Configure web servers to bind to port 8080 when present
+  ASPNETCORE_URLS: "http://+:8080"
+  # Enable detection of running in a container
+  DOTNET_RUNNING_IN_CONTAINER: "true"
+  # Set the invariant mode since ICU package isn't included
+  # (see https://github.com/dotnet/announcements/issues/20)
+  DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "true"
+  DOTNET_ROOT: "/usr/lib/dotnet"
+
+services:
+  dotnet-aspnet:
+    override: replace
+    startup: enabled
+    command: /usr/bin/dotnet [ --info ]
+    on-failure: shutdown
+
+parts:
+  install-aspnet:
+    plugin: nil
+    stage-packages:
+      - "base-files_etc"
+      - "base-files_home"
+      - "base-files_lib"
+      - "base-files_tmp"
+      - "base-files_var"
+      - "base-files_release-info"
+      - "ca-certificates_data"
+      - "aspnetcore-runtime-8.0_libs"

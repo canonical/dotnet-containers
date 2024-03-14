@@ -1,0 +1,41 @@
+name: dotnet-deps
+base: bare
+build-base: devel
+version: '8.0'
+summary: .NET 8 deps rock.
+description: |
+  .NET is a free, cross-platform, open source developer platform for building
+  many different types of applications. This image contains the .NET deps,
+  but does not include bash, the .NET SDK nor a package manager.
+license: GPL-3.0
+platforms:
+  amd64:
+  arm64:
+
+run-user: _daemon_
+
+environment:
+  # Configure web servers to bind to port 8080 when present
+  ASPNETCORE_URLS: "http://+:8080"
+  # Enable detection of running in a container
+  DOTNET_RUNNING_IN_CONTAINER: "true"
+  # Set the invariant mode since ICU package isn't included
+  # (see https://github.com/dotnet/announcements/issues/20)
+  DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: "true"
+
+parts:
+  install-deps:
+    plugin: nil
+    stage-packages:
+      - "base-files_etc"
+      - "base-files_home"
+      - "base-files_lib"
+      - "base-files_tmp"
+      - "base-files_var"
+      - "base-files_release-info"
+      - "ca-certificates_data"
+      - "libc6_libs"
+      - "libgcc-s1_libs"
+      - "libssl3_libs"
+      - "libstdc++6_libs"
+      - "zlib1g_libs"
