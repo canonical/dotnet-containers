@@ -35,11 +35,12 @@ parts:
   install-dotnet-runtime:
     plugin: nil
     stage-packages:
-      - "base-files_etc"
-      - "base-files_home"
-      - "base-files_lib"
-      - "base-files_tmp"
-      - "base-files_var"
+      - "base-files_base"
       - "base-files_release-info"
       - "ca-certificates_data"
       - "dotnet-runtime-8.0_libs"
+    # workaround because /bin in 24.04 is a symlink and that
+    # makes pebble and base-files_base have a conflict
+    override-build: |
+      craftctl default
+      rm ${CRAFT_PART_INSTALL}/bin
