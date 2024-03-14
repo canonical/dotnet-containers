@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -ex
+
+IMAGE_VERSION="$1"
+
+echo "Testing image dotnet-runtime:$IMAGE_VERSION"
+
+docker run --rm "dotnet-runtime:$IMAGE_VERSION" exec dotnet --info | grep \
+    "Microsoft.NETCore.App $IMAGE_VERSION"

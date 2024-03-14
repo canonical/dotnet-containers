@@ -1,0 +1,33 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ["dotnet-runtime", "dotnet-aspnet", "dotnet-deps"]
+        version: ["8.0"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ${{ matrix.image }} ${{ matrix.version}} rock
+        id: build
+        uses: canonical/craft-actions/rockcraft-pack@main
+        with:
+          path: ${{ matrix.image }}/${{ matrix.version }}/
+          verbosity: debug
+
+      - name: Run tests
+        run: |
+          set -ex
+          ./tests/run-all-tests "${{ matrix.image }}" "${{ matrix.version }}" "${{ steps.build.outputs.rock }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.image }}-${{ matrix.version }}-rock
+          path: ${{ steps.build.outputs.rock }}

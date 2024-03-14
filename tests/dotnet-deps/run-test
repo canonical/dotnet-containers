@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -ex
+
+IMAGE_VERSION="$1"
+
+DOCKER_ID=$( docker run -d "dotnet-runtime:$IMAGE_VERSION" )
+docker logs "$DOCKER_ID" | grep "no default services"
