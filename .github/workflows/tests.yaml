@@ -3,17 +3,24 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     name: Build and test
     runs-on: ubuntu-latest
+    outputs:
+      build_status: ${{ steps.set-outputs.outputs.status }}
     strategy:
       fail-fast: false
       matrix:
         image: ["dotnet-runtime", "dotnet-aspnet", "dotnet-deps"]
         version: ["8.0"]
+        ubuntu-release: ["24.04"]
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.100-rc.2.23502.2"
 
       - name: Build ${{ matrix.image }} ${{ matrix.version}} rock
         id: build
@@ -22,12 +29,63 @@ jobs:
           path: ${{ matrix.image }}/${{ matrix.version }}/
           verbosity: debug
 
+      - name: Convert ${{ matrix.image }} ${{ matrix.version}} to docker image
+        id: skopeo
+        run: |
+          set -ex
+          /snap/rockcraft/current/bin/skopeo --insecure-policy copy \
+              oci-archive:${{ steps.build.outputs.rock }} \
+              docker-daemon:ubuntu/${{ matrix.image }}:test
+
       - name: Run tests
         run: |
           set -ex
-          ./tests/run-all-tests "${{ matrix.image }}" "${{ matrix.version }}" "${{ steps.build.outputs.rock }}"
+          ./tests/run-all-tests ${{ matrix.image }}
 
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.image }}-${{ matrix.version }}-rock
           path: ${{ steps.build.outputs.rock }}
+
+      - id: set-outputs
+        if: always()
+        run: |
+          echo "::set-output name=status::${{ job.status }}"
+
+  notify:
+    needs:
+      - build
+    if: always()
+    name: Post Workflow Status to Mattermost
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Create the Mattermost Message
+        run: |
+          case "${{ needs.build.outputs.build_status }}" in
+            failure) msg_icon=":x:" ;;
+            success) msg_icon=":white_check_mark:" ;;
+            cancelled) msg_icon=":no_entry_sign:" ;;
+            *) msg_icon=":grey_question:" ;;
+          esac
+
+          msg=$(cat << EOF
+          ##### $msg_icon GitHub Workflow '${{ github.workflow	}}' execution [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) has ended with the status \`${{ needs.build.outputs.build_status }}\`, for:
+           - Project: [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+           - Branch: [${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }})
+           - Commit: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}); _${{ github.event.head_commit.message }}_
+           - Triggered by: ${{ github.triggering_actor }}
+          EOF
+          )
+
+          jq -n --arg message "$msg" >mattermost.json '
+            {
+              text: $message,
+            }
+          '
+
+      - uses: slackapi/slack-github-action@v1.23.0
+        with:
+          payload-file-path: "mattermost.json"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.MATTERMOST_ROCKS_DEV_WEBHOOK_URL }}

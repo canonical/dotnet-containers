@@ -2,14 +2,15 @@
 
 set -ex
 
-IMAGE_NAME="$1"
-IMAGE_VERSION="$2"
-ROCK_PATH="$3"
+echo "Running tests..."
 
-/snap/rockcraft/current/bin/skopeo copy --insecure-policy \
-    oci-archive:"$ROCK_PATH" \
-    docker-daemon:"$IMAGE_NAME:$IMAGE_VERSION"
+CURRENT_FOLDER="$(dirname $(readlink -f $0))"
 
-if [ -f "$IMAGE_NAME/run-test" ]; then
-    "$IMAGE_NAME/run-test" "$IMAGE_VERSION"
-fi
+for test_folder in "$CURRENT_FOLDER/$1"/*/
+do
+    pushd "$test_folder"
+
+    ./run-test
+
+    popd
+done
