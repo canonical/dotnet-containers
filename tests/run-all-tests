@@ -6,11 +6,14 @@ echo "Running tests..."
 
 CURRENT_FOLDER="$(dirname $(readlink -f $0))"
 
-for test_folder in "$CURRENT_FOLDER/$1"/*/
+for version_folder in "$CURRENT_FOLDER/../$1"/*/
 do
-    pushd "$test_folder"
+    for test_folder in "$version_folder/tests"/*/
+    do
+        pushd "$test_folder"
 
-    ./run-test
+        ./run-test
 
-    popd
+        popd
+    done
 done
