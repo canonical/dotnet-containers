@@ -60,32 +60,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create the Mattermost Message
-        run: |
-          case "${{ needs.build.outputs.build_status }}" in
-            failure) msg_icon=":x:" ;;
-            success) msg_icon=":white_check_mark:" ;;
-            cancelled) msg_icon=":no_entry_sign:" ;;
-            *) msg_icon=":grey_question:" ;;
-          esac
-
-          msg=$(cat << EOF
-          ##### $msg_icon GitHub Workflow '${{ github.workflow	}}' execution [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) has ended with the status \`${{ needs.build.outputs.build_status }}\`, for:
-           - Project: [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
-           - Branch: [${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }})
-           - Commit: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}); _${{ github.event.head_commit.message }}_
-           - Triggered by: ${{ github.triggering_actor }}
-          EOF
-          )
-
-          jq -n --arg message "$msg" >mattermost.json '
-            {
-              text: $message,
-            }
-          '
-
-      - uses: slackapi/slack-github-action@v1.23.0
-        with:
-          payload-file-path: "mattermost.json"
+      - uses: actions/checkout@v4
+      
+      - name: Notify via Mattermost
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.MATTERMOST_ROCKS_DEV_WEBHOOK_URL }}
+          MM_BOT_TOKEN: ${{ secrets.MM_BOT_TOKEN }}
+          FINAL_STATUS: "${{ needs.build.outputs.build_status }}"
+          MM_SERVER: ${{ secrets.MM_SERVER }}
+          URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          SUMMARY: "GitHub Workflow '${{ github.workflow	}}' execution [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) has ended with the status `${{ needs.build.outputs.build_status }}`, for:
+            - Project: [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+            - Branch: [${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }})
+            - Commit: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}); _${{ github.event.head_commit.message }}_
+            - Triggered by: ${{ github.triggering_actor }}"
+          TITLE: "Github workflow '${{ github.workflow	}}' execution #${{ github.run_number }} has ended with the status `${{ needs.build.outputs.build_status }}`"
+          FOOTER: ''
+          MM_CHANNEL_ID: "fbdezwkcxpfofpysjore1wpfoc"
+        run: ./tests/send_to_mattermost
