@@ -1,6 +1,6 @@
 name: dotnet-deps
 base: bare
-build-base: devel
+build-base: ubuntu@24.04
 version: '8.0'
 summary: .NET 8 deps rock.
 description: |
@@ -32,11 +32,6 @@ parts:
       - "ca-certificates_data"
       - "libc6_libs"
       - "libgcc-s1_libs"
-      - "libssl3_libs"
+      - "libssl3t64_libs"
       - "libstdc++6_libs"
       - "zlib1g_libs"
-    # workaround because /bin in 24.04 is a symlink and that
-    # makes pebble and base-files_base have a conflict
-    override-build: |
-      craftctl default
-      rm ${CRAFT_PART_INSTALL}/bin
