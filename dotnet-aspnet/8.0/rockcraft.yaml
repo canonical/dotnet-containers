@@ -1,6 +1,6 @@
 name: dotnet-aspnet
 base: bare
-build-base: ubuntu@24.04
+build-base: devel
 version: '8.0'
 summary: ASP.NET 8 rock.
 description: |
@@ -39,3 +39,8 @@ parts:
       - "base-files_release-info"
       - "ca-certificates_data"
       - "aspnetcore-runtime-8.0_libs"
+    # workaround because /bin in 24.04 is a symlink and that
+    # makes pebble and base-files_base have a conflict
+    override-build: |
+      craftctl default
+      rm ${CRAFT_PART_INSTALL}/bin
