@@ -1,0 +1,19 @@
+#!/bin/bash
+
+set -ex
+
+echo "Running tests..."
+
+CURRENT_FOLDER="$(dirname $(readlink -f $0))"
+
+for version_folder in "$CURRENT_FOLDER/../$1"/*/
+do
+    for test_folder in "$version_folder/tests"/*/
+    do
+        pushd "$test_folder"
+
+        ./run-test
+
+        popd
+    done
+done
