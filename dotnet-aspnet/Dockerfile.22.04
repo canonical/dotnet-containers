@@ -30,6 +30,15 @@ RUN chisel-wrapper --generate-dpkg-status /status -- --release "ubuntu-$UBUNTU_R
     && mkdir -p /rootfs/usr/bin \
     && ln -s /usr/lib/dotnet/dotnet /rootfs/usr/bin/
 
+# Generate the security manifest required by the Ubuntu security team
+RUN mkdir -p /rootfs/usr/share/rocks /tmp/dpkg/info /tmp/dpkg/updates \
+    && sed '/^Package:/a Status: install ok installed' /status > /tmp/dpkg/status \
+    && (echo "# os-release" && cat /rootfs/etc/os-release && echo "# dpkg-query" \
+        && dpkg-query --admindir=/tmp/dpkg -W \
+            -f '${db:Status-Abbrev},${binary:Package},${Version},${source:Package},${Source:Version}\n') \
+        > /rootfs/usr/share/rocks/dpkg.query \
+    && rm -rf /tmp/dpkg
+
 FROM scratch AS sbom-prep
 COPY --from=builder /rootfs /
 COPY --from=builder /status /var/lib/dpkg/status
